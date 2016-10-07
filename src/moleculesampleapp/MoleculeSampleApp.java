@@ -210,7 +210,7 @@ public class MoleculeSampleApp extends Application {
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
 
-    private void handleMouse(Scene scene, final Node root) {
+    private void handleMouse(Scene scene) {
 
         scene.setOnMousePressed(me -> {
             mousePosX = me.getSceneX();
@@ -372,14 +372,6 @@ public class MoleculeSampleApp extends Application {
         rightHandsFingerTips.forEach((type, xform1) -> world.getChildren().add(xform1));
     }
 
-    private Xform createXformWithSphere() {
-        Xform xform = new Xform();
-        Sphere e = new Sphere(3);
-        xform.getChildren().add(e);
-        xform.setTy(0);
-        return xform;
-    }
-
     @Override
     public void start(Stage primaryStage) {
         buildCamera();
@@ -411,7 +403,7 @@ public class MoleculeSampleApp extends Application {
         Scene scene = new Scene(root, 1024, 768, true);
         scene.setFill(Color.GREY);
         handleKeyboard(scene, world);
-        handleMouse(scene, world);
+        handleMouse(scene);
         primaryStage.setTitle("Molecule Sample Application");
         primaryStage.setScene(scene);
         primaryStage.show();
