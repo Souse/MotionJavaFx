@@ -4,22 +4,22 @@ import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
-import javafx.scene.*;
+import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.CullFace;
-import javafx.scene.transform.Translate;
-import javafx.stage.Stage;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
+import javafx.scene.shape.CullFace;
 import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
+import javafx.scene.transform.Translate;
+import javafx.stage.Stage;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 public class MoleculeSampleApp extends Application {
 
@@ -279,7 +279,7 @@ public class MoleculeSampleApp extends Application {
                     break;
                 case X:
                     axisGroup.setVisible(!axisGroup.isVisible());
-                    box.getTransforms().add(new Translate(0,0));
+                    box.getTransforms().add(new Translate(0, 0));
                     break;
                 case V:
                     moleculeGroup.setVisible(!moleculeGroup.isVisible());
@@ -288,8 +288,8 @@ public class MoleculeSampleApp extends Application {
         });  // setOnKeyPressed
     }  //  handleKeyboard()
 
-    private Map<Finger.Type,Sphere> leftHandsFingerTips = new HashMap<>();
-    private Map<Finger.Type,Sphere> rightHandsFingerTips = new HashMap<>();
+    private Map<Finger.Type, Sphere> leftHandsFingerTips = new HashMap<>();
+    private Map<Finger.Type, Sphere> rightHandsFingerTips = new HashMap<>();
 
     private void buildHands() {
         final PhongMaterial redMaterial = new PhongMaterial();
@@ -386,7 +386,7 @@ public class MoleculeSampleApp extends Application {
             protected Void call() throws Exception {
                 for (int i = 0; i < 50000; i++) {
                     System.out.println("working");
-                    updateProgress(x++,300);
+                    updateProgress(x++, 300);
                 }
                 return null;
             }
@@ -470,8 +470,6 @@ public class MoleculeSampleApp extends Application {
                 Vector origin = hand.palmPosition();
 
 
-
-
                 //System.out.println(origin.getX());
                 // Calculate the hand's pitch, roll, and yaw angles
                 /*System.out.println("  pitch: " + Math.toDegrees(direction.pitch()) + " degrees, "
@@ -503,14 +501,14 @@ public class MoleculeSampleApp extends Application {
                         fingerSphere = rightHandsFingerTips.get(finger.type());
                     }
 
-                    final double deltaX,deltaY;
+                    final double deltaX, deltaY;
                     Vector tipPosition = finger.tipPosition();
                     //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
-                    deltaX = tipPosition.getX()/10 - fingerSphere.getTranslateX();
-                    deltaY = tipPosition.getY()/10 - fingerSphere.getTranslateY();
-                    Platform.runLater(() -> fingerSphere.getTransforms().add(new Translate(deltaX,deltaY)));
-                    fingerSphere.setTranslateX(fingerSphere.getTranslateX()+deltaX);
-                    fingerSphere.setTranslateY(fingerSphere.getTranslateY()+deltaY);
+                    deltaX = tipPosition.getX() / 10 - fingerSphere.getTranslateX();
+                    deltaY = tipPosition.getY() / 10 - fingerSphere.getTranslateY();
+                    Platform.runLater(() -> fingerSphere.getTransforms().add(new Translate(deltaX, deltaY)));
+                    fingerSphere.setTranslateX(fingerSphere.getTranslateX() + deltaX);
+                    fingerSphere.setTranslateY(fingerSphere.getTranslateY() + deltaY);
                     //Get Bones
                     for (Bone.Type boneType : Bone.Type.values()) {
                         Bone bone = finger.bone(boneType);
