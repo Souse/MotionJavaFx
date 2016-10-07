@@ -53,7 +53,6 @@ public class MoleculeSampleApp extends Application {
     private Controller controller;
     private SampleListener listener;
     private Sphere sp;
-    private Box box;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -279,7 +278,6 @@ public class MoleculeSampleApp extends Application {
                     break;
                 case X:
                     axisGroup.setVisible(!axisGroup.isVisible());
-                    box.getTransforms().add(new Translate(0, 0));
                     break;
                 case V:
                     moleculeGroup.setVisible(!moleculeGroup.isVisible());
@@ -378,27 +376,7 @@ public class MoleculeSampleApp extends Application {
         buildAxes();
         //buildMolecule();
         buildHands();
-        Task<Void> task = new Task<Void>() {
-
-            double x = 0;
-
-            @Override
-            protected Void call() throws Exception {
-                for (int i = 0; i < 50000; i++) {
-                    System.out.println("working");
-                    updateProgress(x++, 300);
-                }
-                return null;
-            }
-        };
         // Create a Box
-        box = new Box(100, 100, 100);
-        box.setCullFace(CullFace.NONE);
-        box.setTranslateX(50);
-        box.setTranslateY(50);
-        box.setTranslateZ(100);
-        box.layoutXProperty().bind(task.progressProperty());
-        world.getChildren().add(box);
         root.getChildren().add(world);
         Scene scene = new Scene(root, 1024, 768, true);
         scene.setFill(Color.GREY);
@@ -421,11 +399,6 @@ public class MoleculeSampleApp extends Application {
         };
 
         t.start();
-
-        Thread thread = new Thread(task);
-        thread.setDaemon(true);
-        //thread.start();
-        // Keep this process running until Enter is pressed
 
         // Remove the sample listener when done
         //controller.removeListener(listener);
@@ -501,14 +474,16 @@ public class MoleculeSampleApp extends Application {
                         fingerSphere = rightHandsFingerTips.get(finger.type());
                     }
 
-                    final double deltaX, deltaY;
+                    final double deltaX, deltaY, deltaZ;
                     Vector tipPosition = finger.tipPosition();
                     //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
                     deltaX = tipPosition.getX() / 10 - fingerSphere.getTranslateX();
                     deltaY = tipPosition.getY() / 10 - fingerSphere.getTranslateY();
-                    Platform.runLater(() -> fingerSphere.getTransforms().add(new Translate(deltaX, deltaY)));
+                    deltaZ = tipPosition.getZ() / 10 - fingerSphere.getTranslateZ();
+                    Platform.runLater(() -> fingerSphere.getTransforms().add(new Translate(deltaX, deltaY,deltaZ)));
                     fingerSphere.setTranslateX(fingerSphere.getTranslateX() + deltaX);
                     fingerSphere.setTranslateY(fingerSphere.getTranslateY() + deltaY);
+                    fingerSphere.setTranslateZ(fingerSphere.getTranslateZ() + deltaZ);
                     //Get Bones
                     for (Bone.Type boneType : Bone.Type.values()) {
                         Bone bone = finger.bone(boneType);
