@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
+import javafx.scene.shape.Shape3D;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
@@ -255,16 +256,8 @@ public class MotionJavaFx extends Application {
         public void onFrame(Controller controller) {
             // Get the most recent frame and report some basic information
             Frame frame = controller.frame();
-            /*System.out.println("Frame id: " + frame.id()
-                    + ", timestamp: " + frame.timestamp()
-                    + ", hands: " + frame.hands().count()
-                    + ", fingers: " + frame.fingers().count()); */
-
             //Get hands
             for (Hand hand : frame.hands()) {
-                /*System.out.println("  " + handType + ", id: " + hand.id()
-                        + ", palm position: " + hand.palmPosition()); */
-
                 if (!hand.isValid()) {
                     continue;
                 }
@@ -278,26 +271,12 @@ public class MotionJavaFx extends Application {
                         + "roll: " + Math.toDegrees(normal.roll()) + " degrees, "
                         + "yaw: " + Math.toDegrees(direction.yaw()) + " degrees"); */
 
-                // Get arm bone
-                Arm arm = hand.arm();
-               /* System.out.println("  Arm direction: " + arm.direction()
-                        + ", wrist position: " + arm.wristPosition()
-                        + ", elbow position: " + arm.elbowPosition()); */
                 // Get fingers
                 for (Finger finger : hand.fingers()) {
                     if (!finger.isValid()) {
                         System.out.println("INVALID FINGER: "+finger.type());
                         continue;
                     }
-                    /*System.out.println("    " + finger.type() + ", id: " + finger.id()
-                            + ", length: " + finger.length()
-                            + "mm, width: " + finger.width() + "mm"); */
-                    /*sp = new Sphere(3.0);
-                    Vector tipPosition = finger.tipPosition();
-                    sp.setTranslateX(tipPosition.getX());
-                    sp.setTranslateY(tipPosition.getY());
-                    sp.setTranslateZ(tipPosition.getZ());
-                    world.getChildren().add(sp); */
                     final HandModel handModel;
                     if (hand.isLeft()) {
                         handModel = leftHand;
@@ -324,23 +303,23 @@ public class MotionJavaFx extends Application {
             }
         }
 
-        private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
-            final Translate translate = calcTranslation(fingerTip, tipPosition);
+        private void moveSphereToVector(Shape3D shape, Vector tipPosition) {
+            final Translate translate = calcTranslation(shape, tipPosition);
             if (translate.determinant() < 1){
                 return;
             }
             Platform.runLater(() -> {
-                fingerTip.getTransforms().add(translate);
+                shape.getTransforms().add(translate);
             });
-            fingerTip.setTranslateX(fingerTip.getTranslateX() + translate.getTx());
-            fingerTip.setTranslateY(fingerTip.getTranslateY() + translate.getTy());
-            fingerTip.setTranslateZ(fingerTip.getTranslateZ() + translate.getTz());
+            shape.setTranslateX(shape.getTranslateX() + translate.getTx());
+            shape.setTranslateY(shape.getTranslateY() + translate.getTy());
+            shape.setTranslateZ(shape.getTranslateZ() + translate.getTz());
         }
 
-        private Translate calcTranslation(Sphere fingerSphere, Vector tipPosition) {
-            final double deltaX = tipPosition.getX() / 10 - fingerSphere.getTranslateX();
-            final double deltaY = tipPosition.getY() / 10 - fingerSphere.getTranslateY();
-            final double deltaZ = tipPosition.getZ() / 10 - fingerSphere.getTranslateZ();
+        private Translate calcTranslation(Shape3D shape, Vector tipPosition) {
+            final double deltaX = tipPosition.getX() / 10 - shape.getTranslateX();
+            final double deltaY = tipPosition.getY() / 10 - shape.getTranslateY();
+            final double deltaZ = tipPosition.getZ() / 10 - shape.getTranslateZ();
             return new Translate(deltaX, deltaY, deltaZ);
         }
 
