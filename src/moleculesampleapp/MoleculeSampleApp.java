@@ -3,18 +3,13 @@ package moleculesampleapp;
 import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.scene.Group;
-import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
-import javafx.scene.shape.CullFace;
-import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
-import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 
@@ -26,18 +21,18 @@ public class MoleculeSampleApp extends Application {
     final Group root = new Group();
     final Xform axisGroup = new Xform();
     final Xform world = new Xform();
-    final Xform moleculeGroup = new Xform();
     final PerspectiveCamera camera = new PerspectiveCamera(true);
     final Xform cameraXform = new Xform();
     final Xform cameraXform2 = new Xform();
     final Xform cameraXform3 = new Xform();
+    final HandModel leftHand = new HandModel();
+    final HandModel rightHand = new HandModel();
     private static final double CAMERA_INITIAL_DISTANCE = -500;
     private static final double CAMERA_INITIAL_X_ANGLE = 70.0;
     private static final double CAMERA_INITIAL_Y_ANGLE = 320.0;
     private static final double CAMERA_NEAR_CLIP = 0.1;
     private static final double CAMERA_FAR_CLIP = 10000.0;
     private static final double AXIS_LENGTH = 250.0;
-    private static final double HYDROGEN_ANGLE = 104.5;
     private static final double CONTROL_MULTIPLIER = 0.1;
     private static final double SHIFT_MULTIPLIER = 10.0;
     private static final double MOUSE_SPEED = 0.1;
@@ -52,7 +47,6 @@ public class MoleculeSampleApp extends Application {
     double mouseDeltaY;
     private Controller controller;
     private SampleListener listener;
-    private Sphere sp;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -92,86 +86,7 @@ public class MoleculeSampleApp extends Application {
         axisGroup.getChildren().addAll(xAxis, yAxis, zAxis);
         axisGroup.setVisible(false);
         world.getChildren().addAll(axisGroup);
-    }
-
-    private void buildMolecule() {
-
-        final PhongMaterial redMaterial = new PhongMaterial();
-        redMaterial.setDiffuseColor(Color.DARKRED);
-        redMaterial.setSpecularColor(Color.RED);
-
-        final PhongMaterial whiteMaterial = new PhongMaterial();
-        whiteMaterial.setDiffuseColor(Color.WHITE);
-        whiteMaterial.setSpecularColor(Color.LIGHTBLUE);
-
-        final PhongMaterial greyMaterial = new PhongMaterial();
-        greyMaterial.setDiffuseColor(Color.DARKGREY);
-        greyMaterial.setSpecularColor(Color.GREY);
-
-        // Molecule Hierarchy
-        // [*] moleculeXform
-        //     [*] oxygenXform
-        //         [*] oxygenSphere
-        //     [*] hydrogen1SideXform
-        //         [*] hydrogen1Xform
-        //             [*] hydrogen1Sphere
-        //         [*] bond1Cylinder
-        //     [*] hydrogen2SideXform
-        //         [*] hydrogen2Xform
-        //             [*] hydrogen2Sphere
-        //         [*] bond2Cylinder
-
-        Xform moleculeXform = new Xform();
-        Xform oxygenXform = new Xform();
-        Xform hydrogen1SideXform = new Xform();
-        Xform hydrogen1Xform = new Xform();
-        Xform hydrogen2SideXform = new Xform();
-        Xform hydrogen2Xform = new Xform();
-
-        Sphere oxygenSphere = new Sphere(40.0);
-        oxygenSphere.setMaterial(redMaterial);
-
-        Sphere hydrogen1Sphere = new Sphere(30.0);
-        hydrogen1Sphere.setMaterial(whiteMaterial);
-        hydrogen1Sphere.setTranslateX(0.0);
-
-        Sphere hydrogen2Sphere = new Sphere(30.0);
-        hydrogen2Sphere.setMaterial(whiteMaterial);
-        hydrogen2Sphere.setTranslateZ(0.0);
-
-        Cylinder bond1Cylinder = new Cylinder(5, 100);
-        bond1Cylinder.setMaterial(greyMaterial);
-        bond1Cylinder.setTranslateX(50.0);
-        bond1Cylinder.setRotationAxis(Rotate.Z_AXIS);
-        bond1Cylinder.setRotate(90.0);
-
-        Cylinder bond2Cylinder = new Cylinder(5, 100);
-        bond2Cylinder.setMaterial(greyMaterial);
-        bond2Cylinder.setTranslateX(50.0);
-        bond2Cylinder.setRotationAxis(Rotate.Z_AXIS);
-        bond2Cylinder.setRotate(90.0);
-
-        moleculeXform.getChildren().add(oxygenXform);
-        moleculeXform.getChildren().add(hydrogen1SideXform);
-        moleculeXform.getChildren().add(hydrogen2SideXform);
-        oxygenXform.getChildren().add(oxygenSphere);
-        hydrogen1SideXform.getChildren().add(hydrogen1Xform);
-        hydrogen2SideXform.getChildren().add(hydrogen2Xform);
-        hydrogen1Xform.getChildren().add(hydrogen1Sphere);
-        hydrogen2Xform.getChildren().add(hydrogen2Sphere);
-        hydrogen1SideXform.getChildren().add(bond1Cylinder);
-        hydrogen2SideXform.getChildren().add(bond2Cylinder);
-
-        hydrogen1Xform.setTx(100.0);
-        hydrogen2Xform.setTx(100.0);
-        hydrogen2SideXform.setRotateY(HYDROGEN_ANGLE);
-
-        moleculeGroup.getChildren().add(moleculeXform);
-
-        world.getChildren().addAll(moleculeGroup);
-    }
-
-    /*
+    }/*
  * Copyright (c) 2013, 2014 Oracle and/or its affiliates.
  * All rights reserved. Use is subject to license terms.
  *
@@ -266,7 +181,7 @@ public class MoleculeSampleApp extends Application {
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
 
-    private void handleKeyboard(Scene scene, final Node root) {
+    private void handleKeyboard(Scene scene) {
 
         scene.setOnKeyPressed(event -> {
             switch (event.getCode()) {
@@ -279,108 +194,22 @@ public class MoleculeSampleApp extends Application {
                 case X:
                     axisGroup.setVisible(!axisGroup.isVisible());
                     break;
-                case V:
-                    moleculeGroup.setVisible(!moleculeGroup.isVisible());
-                    break;
             } // switch
         });  // setOnKeyPressed
     }  //  handleKeyboard()
-
-    private Map<Finger.Type, Sphere> leftHandsFingerTips = new HashMap<>();
-    private Map<Finger.Type, Sphere> rightHandsFingerTips = new HashMap<>();
-
-    private void buildHands() {
-        final PhongMaterial redMaterial = new PhongMaterial();
-        redMaterial.setDiffuseColor(Color.DARKRED);
-        redMaterial.setSpecularColor(Color.RED);
-
-        final PhongMaterial whiteMaterial = new PhongMaterial();
-        whiteMaterial.setDiffuseColor(Color.WHITE);
-        whiteMaterial.setSpecularColor(Color.LIGHTBLUE);
-
-        final PhongMaterial greyMaterial = new PhongMaterial();
-        greyMaterial.setDiffuseColor(Color.DARKGREY);
-        greyMaterial.setSpecularColor(Color.GREY);
-
-        final PhongMaterial greenMaterial = new PhongMaterial();
-        greenMaterial.setDiffuseColor(Color.DARKGREEN);
-        greenMaterial.setSpecularColor(Color.GREEN);
-
-        final PhongMaterial blueMaterial = new PhongMaterial();
-        blueMaterial.setDiffuseColor(Color.DARKBLUE);
-        blueMaterial.setSpecularColor(Color.BLUE);
-
-
-        Sphere finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(5);
-        finger.setMaterial(redMaterial);
-        leftHandsFingerTips.put(Finger.Type.TYPE_THUMB, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(5);
-        finger.setTranslateZ(0);
-        finger.setMaterial(blueMaterial);
-        leftHandsFingerTips.put(Finger.Type.TYPE_INDEX, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(25);
-        finger.setMaterial(greenMaterial);
-        leftHandsFingerTips.put(Finger.Type.TYPE_MIDDLE, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(20);
-        finger.setMaterial(greyMaterial);
-        leftHandsFingerTips.put(Finger.Type.TYPE_RING, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(15);
-        finger.setMaterial(whiteMaterial);
-        leftHandsFingerTips.put(Finger.Type.TYPE_PINKY, finger);
-
-        leftHandsFingerTips.forEach((type, sphere) -> {
-            world.getChildren().add(sphere);
-            sphere.setRadius(20);
-        });
-
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(5);
-        finger.setMaterial(redMaterial);
-        rightHandsFingerTips.put(Finger.Type.TYPE_THUMB, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(20);
-        finger.setMaterial(blueMaterial);
-        rightHandsFingerTips.put(Finger.Type.TYPE_INDEX, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(25);
-        finger.setMaterial(greenMaterial);
-        rightHandsFingerTips.put(Finger.Type.TYPE_MIDDLE, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(20);
-        finger.setMaterial(greyMaterial);
-        rightHandsFingerTips.put(Finger.Type.TYPE_RING, finger);
-        finger = new Sphere(10);
-        finger.setTranslateX(0);
-        finger.setTranslateZ(15);
-        finger.setMaterial(whiteMaterial);
-        rightHandsFingerTips.put(Finger.Type.TYPE_PINKY, finger);
-        rightHandsFingerTips.forEach((type, xform1) -> world.getChildren().add(xform1));
-    }
 
     @Override
     public void start(Stage primaryStage) {
         buildCamera();
         buildAxes();
         //buildMolecule();
-        buildHands();
+        world.getChildren().add(leftHand);
+        world.getChildren().add(rightHand);
         // Create a Box
         root.getChildren().add(world);
         Scene scene = new Scene(root, 1024, 768, true);
         scene.setFill(Color.GREY);
-        handleKeyboard(scene, world);
+        handleKeyboard(scene);
         handleMouse(scene);
         primaryStage.setTitle("Molecule Sample Application");
         primaryStage.setScene(scene);
@@ -433,13 +262,10 @@ public class MoleculeSampleApp extends Application {
 
             //Get hands
             for (Hand hand : frame.hands()) {
-                String handType = hand.isLeft() ? "Left hand" : "Right hand";
                 /*System.out.println("  " + handType + ", id: " + hand.id()
                         + ", palm position: " + hand.palmPosition()); */
 
                 // Get the hand's normal vector and direction
-                Vector normal = hand.palmNormal();
-                Vector direction = hand.direction();
                 Vector origin = hand.palmPosition();
 
 
@@ -467,30 +293,22 @@ public class MoleculeSampleApp extends Application {
                     sp.setTranslateY(tipPosition.getY());
                     sp.setTranslateZ(tipPosition.getZ());
                     world.getChildren().add(sp); */
-                    final Sphere fingerSphere;
+                    final HandModel handModel;
                     if (hand.isLeft()) {
-                        fingerSphere = leftHandsFingerTips.get(finger.type());
+                        handModel = leftHand;
                     } else {
-                        fingerSphere = rightHandsFingerTips.get(finger.type());
+                        handModel = rightHand;
                     }
-
-                    final double deltaX, deltaY, deltaZ;
+                    final FingerModel fingerModel = handModel.getFingerByType(finger.type());
+                    Sphere fingerTip = fingerModel.getFingerTip();
                     Vector tipPosition = finger.tipPosition();
                     //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
-                    deltaX = tipPosition.getX() / 10 - fingerSphere.getTranslateX();
-                    deltaY = tipPosition.getY() / 10 - fingerSphere.getTranslateY();
-                    deltaZ = tipPosition.getZ() / 10 - fingerSphere.getTranslateZ();
-                    Platform.runLater(() -> fingerSphere.getTransforms().add(new Translate(deltaX, deltaY,deltaZ)));
-                    fingerSphere.setTranslateX(fingerSphere.getTranslateX() + deltaX);
-                    fingerSphere.setTranslateY(fingerSphere.getTranslateY() + deltaY);
-                    fingerSphere.setTranslateZ(fingerSphere.getTranslateZ() + deltaZ);
+                    moveSphereToVector(fingerTip, tipPosition);
                     //Get Bones
                     for (Bone.Type boneType : Bone.Type.values()) {
                         Bone bone = finger.bone(boneType);
-                        /*System.out.println("      " + bone.type()
-                                + " bone, start: " + bone.prevJoint()
-                                + ", end: " + bone.nextJoint()
-                                + ", direction: " + bone.direction()); */
+                        final Sphere boneSphere = fingerModel.getBoneByType(bone.type());
+                        moveSphereToVector(boneSphere,bone.center());
                     }
                 }
             }
@@ -498,6 +316,23 @@ public class MoleculeSampleApp extends Application {
             if (!frame.hands().isEmpty()) {
                 System.out.println();
             }
+        }
+
+        private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
+            final Translate translate = calcTranslation(fingerTip, tipPosition);
+            Platform.runLater(() -> {
+                fingerTip.getTransforms().add(translate);
+            });
+            fingerTip.setTranslateX(fingerTip.getTranslateX() + translate.getTx());
+            fingerTip.setTranslateY(fingerTip.getTranslateY() + translate.getTy());
+            fingerTip.setTranslateZ(fingerTip.getTranslateZ() + translate.getTz());
+        }
+
+        private Translate calcTranslation(Sphere fingerSphere, Vector tipPosition) {
+            final double deltaX = tipPosition.getX() / 10 - fingerSphere.getTranslateX();
+            final double deltaY = tipPosition.getY() / 10 - fingerSphere.getTranslateY();
+            final double deltaZ = tipPosition.getZ() / 10 - fingerSphere.getTranslateZ();
+            return new Translate(deltaX, deltaY, deltaZ);
         }
 
     }
