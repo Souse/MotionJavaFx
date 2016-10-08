@@ -16,7 +16,7 @@ import javafx.stage.Stage;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MoleculeSampleApp extends Application {
+public class MotionJavaFx extends Application {
 
     final Group root = new Group();
     final Xform axisGroup = new Xform();
@@ -119,7 +119,7 @@ public class MoleculeSampleApp extends Application {
  */
 
 //
-// The handleMouse() method is used in the MoleculeSampleApp application to
+// The handleMouse() method is used in the MotionJavaFx application to
 // handle the different 3D camera views.
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
@@ -176,7 +176,7 @@ public class MoleculeSampleApp extends Application {
     } //handleMouse
 
     //
-// The handleKeyboard() method is used in the MoleculeSampleApp application to
+// The handleKeyboard() method is used in the MotionJavaFx application to
 // handle the different 3D camera views.
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
@@ -265,6 +265,9 @@ public class MoleculeSampleApp extends Application {
                 /*System.out.println("  " + handType + ", id: " + hand.id()
                         + ", palm position: " + hand.palmPosition()); */
 
+                if (!hand.isValid()) {
+                    continue;
+                }
                 // Get the hand's normal vector and direction
                 Vector origin = hand.palmPosition();
 
@@ -280,10 +283,12 @@ public class MoleculeSampleApp extends Application {
                /* System.out.println("  Arm direction: " + arm.direction()
                         + ", wrist position: " + arm.wristPosition()
                         + ", elbow position: " + arm.elbowPosition()); */
-
                 // Get fingers
                 for (Finger finger : hand.fingers()) {
-
+                    if (!finger.isValid()) {
+                        System.out.println("INVALID FINGER: "+finger.type());
+                        continue;
+                    }
                     /*System.out.println("    " + finger.type() + ", id: " + finger.id()
                             + ", length: " + finger.length()
                             + "mm, width: " + finger.width() + "mm"); */
@@ -312,14 +317,18 @@ public class MoleculeSampleApp extends Application {
                     }
                 }
             }
-
-            if (!frame.hands().isEmpty()) {
-                System.out.println();
+            try {
+                Thread.sleep(17); //60 FPS
+            } catch (InterruptedException e) {
+                System.out.println(e);
             }
         }
 
         private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
             final Translate translate = calcTranslation(fingerTip, tipPosition);
+            if (translate.determinant() < 1){
+                return;
+            }
             Platform.runLater(() -> {
                 fingerTip.getTransforms().add(translate);
             });
