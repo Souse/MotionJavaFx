@@ -3,18 +3,23 @@ package moleculesampleapp;
 import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
-import javafx.scene.shape.Shape3D;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MotionJavaFx extends Application {
@@ -48,6 +53,7 @@ public class MotionJavaFx extends Application {
     double mouseDeltaY;
     private Controller controller;
     private SampleListener listener;
+    private Label thumbPosition;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -204,6 +210,27 @@ public class MotionJavaFx extends Application {
         buildCamera();
         buildAxes();
         //buildMolecule();
+        Button button = new Button("Test");
+        button.setOnMouseClicked(event -> {
+            Frame frame = controller.frame();
+            for (Hand hand : frame.hands()) {
+                List<Vector> fingerTips = new ArrayList<Vector>();
+                List<Vector> fingerBases = new ArrayList<Vector>();
+                for (Finger finger : hand.fingers()) {
+                    fingerTips.add(finger.tipPosition());
+                    fingerBases.add(finger.bone(Bone.Type.TYPE_PROXIMAL).center());
+                }
+                Gesture handGesture = new Gesture(fingerTips, fingerBases, hand.palmPosition());
+            }
+
+        });
+        thumbPosition = new Label("nix");
+        thumbPosition.setTranslateX(30);
+
+
+
+        world.getChildren().add(button);
+        world.getChildren().add(thumbPosition);
         world.getChildren().add(leftHand);
         world.getChildren().add(rightHand);
         // Create a Box
@@ -226,6 +253,7 @@ public class MotionJavaFx extends Application {
                 // Have the sample listener receive events from the controller
                 controller.addListener(listener);
             }
+
         };
 
         t.start();
@@ -256,8 +284,16 @@ public class MotionJavaFx extends Application {
         public void onFrame(Controller controller) {
             // Get the most recent frame and report some basic information
             Frame frame = controller.frame();
+            /*System.out.println("Frame id: " + frame.id()
+                    + ", timestamp: " + frame.timestamp()
+                    + ", hands: " + frame.hands().count()
+                    + ", fingers: " + frame.fingers().count()); */
+
             //Get hands
             for (Hand hand : frame.hands()) {
+                /*System.out.println("  " + handType + ", id: " + hand.id()
+                        + ", palm position: " + hand.palmPosition()); */
+
                 if (!hand.isValid()) {
                     continue;
                 }
@@ -271,12 +307,26 @@ public class MotionJavaFx extends Application {
                         + "roll: " + Math.toDegrees(normal.roll()) + " degrees, "
                         + "yaw: " + Math.toDegrees(direction.yaw()) + " degrees"); */
 
+                // Get arm bone
+                Arm arm = hand.arm();
+               /* System.out.println("  Arm direction: " + arm.direction()
+                        + ", wrist position: " + arm.wristPosition()
+                        + ", elbow position: " + arm.elbowPosition()); */
                 // Get fingers
                 for (Finger finger : hand.fingers()) {
                     if (!finger.isValid()) {
                         System.out.println("INVALID FINGER: "+finger.type());
                         continue;
                     }
+                    /*System.out.println("    " + finger.type() + ", id: " + finger.id()
+                            + ", length: " + finger.length()
+                            + "mm, width: " + finger.width() + "mm"); */
+                    /*sp = new Sphere(3.0);
+                    Vector tipPosition = finger.tipPosition();
+                    sp.setTranslateX(tipPosition.getX());
+                    sp.setTranslateY(tipPosition.getY());
+                    sp.setTranslateZ(tipPosition.getZ());
+                    world.getChildren().add(sp); */
                     final HandModel handModel;
                     if (hand.isLeft()) {
                         handModel = leftHand;
@@ -284,8 +334,11 @@ public class MotionJavaFx extends Application {
                         handModel = rightHand;
                     }
                     final FingerModel fingerModel = handModel.getFingerByType(finger.type());
-                    Sphere fingerTip = fingerModel.getFingerTip();
-                    Vector tipPosition = finger.tipPosition();
+                    final Sphere fingerTip = fingerModel.getFingerTip();
+                    final Vector tipPosition = finger.tipPosition();
+                    if (finger.type().equals(Finger.Type.TYPE_THUMB)) {
+                        Platform.runLater(() -> thumbPosition.setText(tipPosition.toString()));
+                    }
                     //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
                     moveSphereToVector(fingerTip, tipPosition);
                     //Get Bones
@@ -303,23 +356,23 @@ public class MotionJavaFx extends Application {
             }
         }
 
-        private void moveSphereToVector(Shape3D shape, Vector tipPosition) {
-            final Translate translate = calcTranslation(shape, tipPosition);
+        private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
+            final Translate translate = calcTranslation(fingerTip, tipPosition);
             if (translate.determinant() < 1){
                 return;
             }
             Platform.runLater(() -> {
-                shape.getTransforms().add(translate);
+                fingerTip.getTransforms().add(translate);
             });
-            shape.setTranslateX(shape.getTranslateX() + translate.getTx());
-            shape.setTranslateY(shape.getTranslateY() + translate.getTy());
-            shape.setTranslateZ(shape.getTranslateZ() + translate.getTz());
+            fingerTip.setTranslateX(fingerTip.getTranslateX() + translate.getTx());
+            fingerTip.setTranslateY(fingerTip.getTranslateY() + translate.getTy());
+            fingerTip.setTranslateZ(fingerTip.getTranslateZ() + translate.getTz());
         }
 
-        private Translate calcTranslation(Shape3D shape, Vector tipPosition) {
-            final double deltaX = tipPosition.getX() / 10 - shape.getTranslateX();
-            final double deltaY = tipPosition.getY() / 10 - shape.getTranslateY();
-            final double deltaZ = tipPosition.getZ() / 10 - shape.getTranslateZ();
+        private Translate calcTranslation(Sphere fingerSphere, Vector tipPosition) {
+            final double deltaX = tipPosition.getX() / 5 - fingerSphere.getTranslateX();
+            final double deltaY = tipPosition.getY() / 5 - fingerSphere.getTranslateY();
+            final double deltaZ = tipPosition.getZ() / 5 - fingerSphere.getTranslateZ();
             return new Translate(deltaX, deltaY, deltaZ);
         }
 
