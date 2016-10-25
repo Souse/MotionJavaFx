@@ -18,7 +18,7 @@ public class GestureDAO {
 
     public static ObservableList<Gesture> getAllGestures() throws SQLException, ClassNotFoundException {
         //Declare a SELECT statement
-        String selectStmt = "SELECT g.name, g.id, a.value, a.angletype, hg.IsRightHand FROM Gesture g, Angle a, HandGesture hg where g.id = hg.gestureid and hg.id = a.handgestureid";
+        String selectStmt = "SELECT g.name, g.id, a.value, a.angletype, hg.IsRightHand, hg.id FROM Gesture g, Angle a, HandGesture hg where g.id = hg.gestureid and hg.id = a.handgestureid";
 
         //Execute SELECT statement
         try {
@@ -45,10 +45,10 @@ public class GestureDAO {
 
 
         while (rs.next()) {
-            String name = rs.getString("NAME");
+            String name = rs.getString(1);
             if (!gestureMap.containsKey(name)) {
                 Gesture gesture = new Gesture();
-                gesture.setId(rs.getInt("ID"));
+                gesture.setId(rs.getInt(2));
                 gesture.setName(name);
                 gestureList.add(gesture);
             }
@@ -62,12 +62,51 @@ public class GestureDAO {
 
     public static void main(String[] args) {
         try {
-            insertGesture(new Gesture(2, "'--", Arrays.asList(new HandGesture())));
+            setup();
+            final ObservableList<Gesture> allGestures = getAllGestures();
+            final Gesture gesture = allGestures.get(0);
+            if (gesture.getHandGestures().size()!= 2)  {
+                System.out.println("ERROR missing handgesture");
+            } else {
+                final HandGesture handGesture1 = gesture.getHandGestures().get(0);
+                if (handGesture1.getAngles().size()!=2)  {
+                    System.out.println( "ERROR missing angle in hg 1");
+                }
+                final HandGesture handGesture2 = gesture.getHandGestures().get(1);
+                if (handGesture2.getAngles().size()!=2)  {
+                    System.out.println( "ERROR missing angle in hg 2");
+                }
+            }
+
         } catch (SQLException e) {
             e.getErrorCode();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void setup() throws SQLException, ClassNotFoundException {
+        final HandGesture handGesture = new HandGesture();
+        handGesture.setIsRightHand(true);
+        Angle angle = new Angle();
+        angle.setAngleType(Angle.AngleType.BTOW);
+        angle.setValue(3.123f);
+        handGesture.getAngles().add(angle);
+        angle = new Angle();
+        angle.setAngleType(Angle.AngleType.FTOF);
+        angle.setValue(6.3245f);
+        handGesture.getAngles().add(angle);
+        final HandGesture handGesture2 = new HandGesture();
+        handGesture2.setIsRightHand(false);
+        angle = new Angle();
+        angle.setAngleType(Angle.AngleType.BTOW);
+        angle.setValue(5.123f);
+        handGesture2.getAngles().add(angle);
+        angle = new Angle();
+        angle.setAngleType(Angle.AngleType.FTOF);
+        angle.setValue(4.3245f);
+        handGesture2.getAngles().add(angle);
+        insertGesture(new Gesture(2, "test", Arrays.asList(handGesture, handGesture2)));
     }
 
     //*************************************
