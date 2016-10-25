@@ -1,4 +1,4 @@
-package moleculesampleapp;
+package motionjavafx;
 
 import javafx.scene.Group;
 import javafx.scene.transform.Rotate;

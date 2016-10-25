@@ -1,11 +1,11 @@
-package moleculesampleapp;
+package motionjavafx;
 
 import com.leapmotion.leap.Finger;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Material;
 import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Sphere;
+import motionjavafx.FingerModel;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ import java.util.Map;
  * Created by Howl on 10/8/2016.
  */
 public class HandModel extends Group {
-    private Map<Finger.Type,FingerModel> fingers = new HashMap<>();
+    private Map<Finger.Type, FingerModel> fingers = new HashMap<>();
     private Map<Finger.Type,Material> fingerMaterials = new HashMap<>();
 
     public HandModel() {

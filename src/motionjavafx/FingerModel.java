@@ -1,4 +1,4 @@
-package moleculesampleapp;
+package motionjavafx;
 
 import com.leapmotion.leap.Bone;
 import javafx.scene.Group;

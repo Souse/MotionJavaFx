@@ -1,4 +1,4 @@
-package moleculesampleapp;
+package motionjavafx.model;
 
 import com.leapmotion.leap.Vector;
 
@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Created by lena on 10/23/16.
  */
-public class Gesture {
+public class HandGesture {
 
     private List<Vector> fingerTips = new ArrayList<>();
     private List<Vector> fingerBases = new ArrayList <>();
@@ -16,7 +16,7 @@ public class Gesture {
     private List<Float> anglesTipToTip = new ArrayList<>();
     private float angleProxToMetacarp;
 
-    public Gesture(List<Vector> fingerTips, List<Vector> fingerBases, Vector Metacarp) {
+    public HandGesture(List<Vector> fingerTips, List<Vector> fingerBases, Vector Metacarp) {
         this.fingerTips = fingerTips;
         this.fingerBases = fingerBases;
 

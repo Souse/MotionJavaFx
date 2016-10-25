@@ -1,26 +1,23 @@
-package moleculesampleapp;
+package motionjavafx;
 
 import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
+import motionjavafx.model.HandGesture;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MotionJavaFx extends Application {
 
@@ -220,14 +217,12 @@ public class MotionJavaFx extends Application {
                     fingerTips.add(finger.tipPosition());
                     fingerBases.add(finger.bone(Bone.Type.TYPE_PROXIMAL).center());
                 }
-                Gesture handGesture = new Gesture(fingerTips, fingerBases, hand.palmPosition());
+                HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.palmPosition());
             }
 
         });
         thumbPosition = new Label("nix");
         thumbPosition.setTranslateX(30);
-
-
 
         world.getChildren().add(button);
         world.getChildren().add(thumbPosition);
