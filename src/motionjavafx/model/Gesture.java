@@ -1,5 +1,6 @@
 package motionjavafx.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -11,6 +12,7 @@ public class Gesture {
     private List<HandGesture> handGestures;
 
     public Gesture() {
+        handGestures = new ArrayList<>();
     }
 
     public Gesture(int id, String name, List<HandGesture> handGestures) {

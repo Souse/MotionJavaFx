@@ -14,6 +14,9 @@ public class DBUtil {
     //Connection
     private static Connection conn = null;
 
+    //CREATE TABLE HandGesture (Gestureid integer, id integer primary key, isrighthand smallint)
+    //CREATE TABLE Gesture (id integer primary key, name text)
+    //CREATE TABLE Angle (AngleType numeric, handgestureid integer, id integer primary key, value numeric)
 
     private static final String connStr = "jdbc:sqlite:/home/lena/programming/LeapMotionDB/db";
 
@@ -116,4 +119,54 @@ public class DBUtil {
             dbDisconnect();
         }
     }
+
+    public static PreparedStatement createPreparedStatement(String sql) throws ClassNotFoundException, SQLException {
+        PreparedStatement stmt = null;
+        try {
+            //Connect to DB (Establish Sqlite Connection)
+            dbConnect();
+            //Create Statement
+            stmt = conn.prepareStatement(sql);
+            //Run executeUpdate operation with given sql statement
+            return stmt;
+        } catch (SQLException e) {
+            System.out.println("Problem occurred at executeUpdate operation : " + e);
+            throw e;
+        }
+    }
+
+    public static void executePreparedStatementUpdate(PreparedStatement preparedStatement) throws SQLException {
+        try {
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            if (preparedStatement != null) {
+                //Close statement
+                preparedStatement.close();
+            }
+            //Close connection
+            dbDisconnect();
+        }
+    }
+
+    public static ResultSet executePreparedStatementQuery(PreparedStatement preparedStatement) throws SQLException {
+        try {
+            return preparedStatement.executeQuery();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            if (preparedStatement != null) {
+                //Close statement
+                preparedStatement.close();
+            }
+            //Close connection
+            dbDisconnect();
+        }
+        return null;
+    }
+
+
 }

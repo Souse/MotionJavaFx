@@ -12,25 +12,33 @@ public class HandGesture {
 
     private List<Vector> fingerTips = new ArrayList<>();
     private List<Vector> fingerBases = new ArrayList <>();
-    private List<Float> anglesTipToBase = new ArrayList<>();
-    private List<Float> anglesTipToTip = new ArrayList<>();
-    private float angleProxToMetacarp;
+    private List<Angle> angles = new ArrayList<>();
+    private boolean rightHand = false;
 
-    public HandGesture(List<Vector> fingerTips, List<Vector> fingerBases, Vector Metacarp) {
+    public HandGesture() {
+    }
+
+    public HandGesture(List<Vector> fingerTips, List<Vector> fingerBases, Vector wrist, boolean rightHand) {
         this.fingerTips = fingerTips;
         this.fingerBases = fingerBases;
+        this.rightHand = rightHand;
+
 
         calcFingerTipToBaseAngles(fingerTips, fingerBases);
 
         calcFingerTipToTipAngles(fingerTips);
 
-        calcAngleProxToMetacarp(this.fingerBases.get(2), Metacarp);
+        calcAngleProxToMetacarp(this.fingerBases.get(2), wrist);
     }
 
     private void calcFingerTipToTipAngles(List<Vector> fingerTips) {
         for (int i = 0; i < 5; i++){
             for (int j = i+1;j < 5; j++) {
-                this.anglesTipToTip.add(calcAngle(fingerTips.get(i), fingerTips.get(j)));
+                final float angleValue = calcAngle(fingerTips.get(i), fingerTips.get(j));
+                Angle angle = new Angle();
+                angle.setAngleType(Angle.AngleType.FTOF);
+                angle.setValue(angleValue);
+                this.angles.add(angle);
             }
         }
     }
@@ -38,7 +46,11 @@ public class HandGesture {
     private void calcFingerTipToBaseAngles(List<Vector> fingerTips, List<Vector> fingerBases) {
         for (int i = 0; i < 5; i++)
         {
-            this.anglesTipToBase.add(calcAngle(fingerTips.get(i), fingerBases.get(i)));
+            final float angleValue = calcAngle(fingerTips.get(i), fingerBases.get(i));
+            Angle angle = new Angle();
+            angle.setAngleType(Angle.AngleType.FTOB);
+            angle.setValue(angleValue);
+            this.angles.add(angle);
         }
     }
 
@@ -46,16 +58,25 @@ public class HandGesture {
         return pointA.angleTo(pointB);
     }
 
-    private void calcAngleProxToMetacarp (Vector Prox, Vector Metacarp){
-        this.angleProxToMetacarp = calcAngle(Prox, Metacarp);
+    public boolean isRightHand() {
+        return rightHand;
     }
 
-    public List<Float> getanglesTipToBase() {
-        return anglesTipToBase;
+    public void setIsRightHand(boolean rightHand) {
+        this.rightHand = rightHand;
     }
 
-    public List<Float> getAnglesTipToTip() {
-        return anglesTipToTip;
+    private void calcAngleProxToMetacarp (Vector prox, Vector wrist){
+        final float angleValue = calcAngle(prox, wrist);
+        Angle angle = new Angle();
+        angle.setAngleType(Angle.AngleType.BTOW);
+        angle.setValue(angleValue);
+        this.angles.add(angle);
+    }
+
+
+    public List<Angle> getAngles() {
+        return angles;
     }
 
 

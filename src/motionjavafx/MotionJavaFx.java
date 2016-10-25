@@ -3,19 +3,27 @@ package motionjavafx;
 import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.Event;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.SubScene;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
+import motionjavafx.model.Gesture;
+import motionjavafx.model.GestureDAO;
 import motionjavafx.model.HandGesture;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +49,8 @@ public class MotionJavaFx extends Application {
     private static final double MOUSE_SPEED = 0.1;
     private static final double ROTATION_SPEED = 2.0;
     private static final double TRACK_SPEED = 0.3;
+    public TextField gestureNameField;
+    public TextField errorField;
 
     double mousePosX;
     double mousePosY;
@@ -50,7 +60,6 @@ public class MotionJavaFx extends Application {
     double mouseDeltaY;
     private Controller controller;
     private SampleListener listener;
-    private Label thumbPosition;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -128,7 +137,7 @@ public class MotionJavaFx extends Application {
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
 
-    private void handleMouse(Scene scene) {
+    private void handleMouse(SubScene scene) {
 
         scene.setOnMousePressed(me -> {
             mousePosX = me.getSceneX();
@@ -185,7 +194,7 @@ public class MotionJavaFx extends Application {
 // This method is used in the Getting Started with JavaFX 3D Graphics tutorial.
 //
 
-    private void handleKeyboard(Scene scene) {
+    private void handleKeyboard(SubScene scene) {
 
         scene.setOnKeyPressed(event -> {
             switch (event.getCode()) {
@@ -207,43 +216,36 @@ public class MotionJavaFx extends Application {
         buildCamera();
         buildAxes();
         //buildMolecule();
-        Button button = new Button("Test");
-        button.setOnMouseClicked(event -> {
-            Frame frame = controller.frame();
-            for (Hand hand : frame.hands()) {
-                List<Vector> fingerTips = new ArrayList<Vector>();
-                List<Vector> fingerBases = new ArrayList<Vector>();
-                for (Finger finger : hand.fingers()) {
-                    fingerTips.add(finger.tipPosition());
-                    fingerBases.add(finger.bone(Bone.Type.TYPE_PROXIMAL).center());
-                }
-                HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.palmPosition());
-            }
+        controller = new Controller();
+        Pane myPane = null;
+        try {
+            myPane = FXMLLoader.load(getClass().getResource
+                    ("sample.fxml"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        });
-        thumbPosition = new Label("nix");
-        thumbPosition.setTranslateX(30);
-
-        world.getChildren().add(button);
-        world.getChildren().add(thumbPosition);
         world.getChildren().add(leftHand);
         world.getChildren().add(rightHand);
         // Create a Box
         root.getChildren().add(world);
-        Scene scene = new Scene(root, 1024, 768, true);
+        SubScene scene = new SubScene(root, 1024, 768);
         scene.setFill(Color.GREY);
         handleKeyboard(scene);
         handleMouse(scene);
         primaryStage.setTitle("Molecule Sample Application");
-        primaryStage.setScene(scene);
+        Scene myScene = new Scene(myPane);
+        primaryStage.setScene(myScene);
+        ((BorderPane)myPane).setCenter(scene);
+        primaryStage.setScene(myScene);
         primaryStage.show();
+        gestureNameField = (TextField) myPane.lookup("#gestureNameField");
+        errorField = (TextField) myPane.lookup("#errorField");
         scene.setCamera(camera);
-
         Thread t = new Thread() {
             @Override
             public void run() {
                 listener = new SampleListener();
-                controller = new Controller();
 
                 // Have the sample listener receive events from the controller
                 controller.addListener(listener);
@@ -256,6 +258,29 @@ public class MotionJavaFx extends Application {
         // Remove the sample listener when done
         //controller.removeListener(listener);
         //primaryStage.close();
+    }
+
+    public void saveGesture(Event event) {
+        controller = new Controller();
+        Frame frame = controller.frame();
+        Gesture  gesture = new Gesture();
+        gesture.setName(gestureNameField.getText());
+        for (Hand hand : frame.hands()) {
+            List<Vector> fingerTips = new ArrayList<Vector>();
+            List<Vector> fingerBases = new ArrayList<Vector>();
+            for (Finger finger : hand.fingers()) {
+                fingerTips.add(finger.tipPosition());
+                fingerBases.add(finger.bone(Bone.Type.TYPE_PROXIMAL).center());
+            }
+            HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.arm().wristPosition(),hand.isRight());
+            gesture.getHandGestures().add(handGesture);
+        }
+        try {
+            GestureDAO.insertGesture(gesture);
+        } catch (Exception e) {
+            errorField.setVisible(true);
+            errorField.setText(e.getMessage());
+        }
     }
 
     class SampleListener extends Listener {
@@ -289,9 +314,6 @@ public class MotionJavaFx extends Application {
                 /*System.out.println("  " + handType + ", id: " + hand.id()
                         + ", palm position: " + hand.palmPosition()); */
 
-                if (!hand.isValid()) {
-                    continue;
-                }
                 // Get the hand's normal vector and direction
                 Vector origin = hand.palmPosition();
 
@@ -309,10 +331,6 @@ public class MotionJavaFx extends Application {
                         + ", elbow position: " + arm.elbowPosition()); */
                 // Get fingers
                 for (Finger finger : hand.fingers()) {
-                    if (!finger.isValid()) {
-                        System.out.println("INVALID FINGER: "+finger.type());
-                        continue;
-                    }
                     /*System.out.println("    " + finger.type() + ", id: " + finger.id()
                             + ", length: " + finger.length()
                             + "mm, width: " + finger.width() + "mm"); */
@@ -331,9 +349,6 @@ public class MotionJavaFx extends Application {
                     final FingerModel fingerModel = handModel.getFingerByType(finger.type());
                     final Sphere fingerTip = fingerModel.getFingerTip();
                     final Vector tipPosition = finger.tipPosition();
-                    if (finger.type().equals(Finger.Type.TYPE_THUMB)) {
-                        Platform.runLater(() -> thumbPosition.setText(tipPosition.toString()));
-                    }
                     //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
                     moveSphereToVector(fingerTip, tipPosition);
                     //Get Bones
@@ -345,7 +360,7 @@ public class MotionJavaFx extends Application {
                 }
             }
             try {
-                Thread.sleep(17); //60 FPS
+                Thread.sleep(50); //60 FPS
             } catch (InterruptedException e) {
                 System.out.println(e);
             }
@@ -353,9 +368,9 @@ public class MotionJavaFx extends Application {
 
         private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
             final Translate translate = calcTranslation(fingerTip, tipPosition);
-            if (translate.determinant() < 1){
+            /*if (translate.determinant() < 1){
                 return;
-            }
+            } */
             Platform.runLater(() -> {
                 fingerTip.getTransforms().add(translate);
             });
