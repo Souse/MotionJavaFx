@@ -23,7 +23,6 @@ import motionjavafx.model.GestureDAO;
 import motionjavafx.model.HandGesture;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -236,7 +235,7 @@ public class MotionJavaFx extends Application {
         primaryStage.setTitle("Molecule Sample Application");
         Scene myScene = new Scene(myPane);
         primaryStage.setScene(myScene);
-        ((BorderPane)myPane).setCenter(scene);
+        ((BorderPane) myPane).setCenter(scene);
         primaryStage.setScene(myScene);
         primaryStage.show();
         gestureNameField = (TextField) myPane.lookup("#gestureNameField");
@@ -263,7 +262,7 @@ public class MotionJavaFx extends Application {
     public void saveGesture(Event event) {
         controller = new Controller();
         Frame frame = controller.frame();
-        Gesture  gesture = new Gesture();
+        Gesture gesture = new Gesture();
         gesture.setName(gestureNameField.getText());
         for (Hand hand : frame.hands()) {
             List<Vector> fingerTips = new ArrayList<Vector>();
@@ -272,7 +271,7 @@ public class MotionJavaFx extends Application {
                 fingerTips.add(finger.tipPosition());
                 fingerBases.add(finger.bone(Bone.Type.TYPE_PROXIMAL).center());
             }
-            HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.arm().wristPosition(),hand.isRight());
+            HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.arm().wristPosition(), hand.isRight());
             gesture.getHandGestures().add(handGesture);
         }
         try {
@@ -304,42 +303,21 @@ public class MotionJavaFx extends Application {
         public void onFrame(Controller controller) {
             // Get the most recent frame and report some basic information
             Frame frame = controller.frame();
-            /*System.out.println("Frame id: " + frame.id()
-                    + ", timestamp: " + frame.timestamp()
-                    + ", hands: " + frame.hands().count()
-                    + ", fingers: " + frame.fingers().count()); */
 
             //Get hands
             for (Hand hand : frame.hands()) {
-                /*System.out.println("  " + handType + ", id: " + hand.id()
-                        + ", palm position: " + hand.palmPosition()); */
+
 
                 // Get the hand's normal vector and direction
                 Vector origin = hand.palmPosition();
 
 
-                //System.out.println(origin.getX());
-                // Calculate the hand's pitch, roll, and yaw angles
-                /*System.out.println("  pitch: " + Math.toDegrees(direction.pitch()) + " degrees, "
-                        + "roll: " + Math.toDegrees(normal.roll()) + " degrees, "
-                        + "yaw: " + Math.toDegrees(direction.yaw()) + " degrees"); */
-
                 // Get arm bone
                 Arm arm = hand.arm();
-               /* System.out.println("  Arm direction: " + arm.direction()
-                        + ", wrist position: " + arm.wristPosition()
-                        + ", elbow position: " + arm.elbowPosition()); */
+
                 // Get fingers
                 for (Finger finger : hand.fingers()) {
-                    /*System.out.println("    " + finger.type() + ", id: " + finger.id()
-                            + ", length: " + finger.length()
-                            + "mm, width: " + finger.width() + "mm"); */
-                    /*sp = new Sphere(3.0);
-                    Vector tipPosition = finger.tipPosition();
-                    sp.setTranslateX(tipPosition.getX());
-                    sp.setTranslateY(tipPosition.getY());
-                    sp.setTranslateZ(tipPosition.getZ());
-                    world.getChildren().add(sp); */
+
                     final HandModel handModel;
                     if (hand.isLeft()) {
                         handModel = leftHand;
@@ -355,7 +333,7 @@ public class MotionJavaFx extends Application {
                     for (Bone.Type boneType : Bone.Type.values()) {
                         Bone bone = finger.bone(boneType);
                         final Sphere boneSphere = fingerModel.getBoneByType(bone.type());
-                        moveSphereToVector(boneSphere,bone.center());
+                        moveSphereToVector(boneSphere, bone.center());
                     }
                 }
             }

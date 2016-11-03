@@ -38,6 +38,16 @@ public class Angle {
         public int getNumber() {
             return number;
         }
+
+        public static AngleType fromInt(int anInt) {
+            for (AngleType angleType : AngleType.values()) {
+                if (angleType.getNumber() == anInt) {
+                    return angleType;
+                }
+            }
+
+            throw new IllegalStateException("Invalid value for angleType: "+anInt);
+        }
     }
 
 }

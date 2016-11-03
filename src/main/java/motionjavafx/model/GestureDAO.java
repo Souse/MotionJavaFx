@@ -42,7 +42,7 @@ public class GestureDAO {
         //Declare a observable List which comprises of Gesture objects
         ObservableList<Gesture> gestureList = FXCollections.observableArrayList();
         Map<String, Gesture> gestureMap = new HashMap<>();
-
+        Map<Integer, HandGesture> handGestureMap = new HashMap<>();
 
         while (rs.next()) {
             String name = rs.getString(1);
@@ -51,9 +51,24 @@ public class GestureDAO {
                 gesture.setId(rs.getInt(2));
                 gesture.setName(name);
                 gestureList.add(gesture);
+                gestureMap.put(name,gesture);
             }
             Gesture gesture = gestureMap.get(name);
-
+            final int hgId = rs.getInt(6);
+            if (!handGestureMap.containsKey(hgId)) {
+                HandGesture handGesture = new HandGesture();
+                handGesture.setId(hgId);
+                handGesture.setIsRightHand(rs.getBoolean(5));
+                handGestureMap.put(hgId,handGesture);
+            }
+            HandGesture handGesture = handGestureMap.get(hgId);
+            if (!gesture.getHandGestures().contains(handGesture)){
+                gesture.getHandGestures().add(handGesture);
+            }
+            Angle angle = new Angle();
+            angle.setValue(rs.getFloat(3));
+            angle.setAngleType(Angle.AngleType.fromInt(rs.getInt(4)));
+            handGesture.getAngles().add(angle);
 
         }
         //return gestureList (ObservableList of Gestures)
@@ -86,6 +101,9 @@ public class GestureDAO {
     }
 
     private static void setup() throws SQLException, ClassNotFoundException {
+        DBUtil.dbExecuteUpdate("delete from angle");
+        DBUtil.dbExecuteUpdate("delete from handGesture");
+        DBUtil.dbExecuteUpdate("delete from gesture");
         final HandGesture handGesture = new HandGesture();
         handGesture.setIsRightHand(true);
         Angle angle = new Angle();

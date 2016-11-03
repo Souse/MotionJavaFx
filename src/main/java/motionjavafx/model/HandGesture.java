@@ -14,6 +14,7 @@ public class HandGesture {
     private List<Vector> fingerBases = new ArrayList <>();
     private List<Angle> angles = new ArrayList<>();
     private boolean rightHand = false;
+    private int id;
 
     public HandGesture() {
     }
@@ -52,6 +53,14 @@ public class HandGesture {
             angle.setValue(angleValue);
             this.angles.add(angle);
         }
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     private float calcAngle(Vector pointA, Vector pointB) {
