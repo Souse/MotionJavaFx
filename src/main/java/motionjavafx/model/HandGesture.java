@@ -75,6 +75,25 @@ public class HandGesture {
         this.rightHand = rightHand;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        HandGesture that = (HandGesture) o;
+
+        if (rightHand != that.rightHand) return false;
+        return angles.equals(that.angles);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = angles.hashCode();
+        result = 31 * result + (rightHand ? 1 : 0);
+        return result;
+    }
+
     private void calcAngleProxToMetacarp (Vector prox, Vector wrist){
         final float angleValue = calcAngle(prox, wrist);
         Angle angle = new Angle();

@@ -2,7 +2,7 @@ package motionjavafx;
 
 import com.leapmotion.leap.*;
 import javafx.application.Application;
-import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
@@ -15,16 +15,20 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
-import javafx.scene.shape.Sphere;
-import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
+import motionjavafx.model.Angle;
 import motionjavafx.model.Gesture;
 import motionjavafx.model.GestureDAO;
 import motionjavafx.model.HandGesture;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class MotionJavaFx extends Application {
 
@@ -50,6 +54,8 @@ public class MotionJavaFx extends Application {
     private static final double TRACK_SPEED = 0.3;
     public TextField gestureNameField;
     public TextField errorField;
+    public TextField outputField;
+    public TextField confidentialityField;
 
     double mousePosX;
     double mousePosY;
@@ -58,7 +64,8 @@ public class MotionJavaFx extends Application {
     double mouseDeltaX;
     double mouseDeltaY;
     private Controller controller;
-    private SampleListener listener;
+    private UserInterfaceListener listener;
+    private ObservableList<Gesture> allGestures;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -232,7 +239,7 @@ public class MotionJavaFx extends Application {
         scene.setFill(Color.GREY);
         handleKeyboard(scene);
         handleMouse(scene);
-        primaryStage.setTitle("Molecule Sample Application");
+        primaryStage.setTitle("LeapMotion Zeichensprache");
         Scene myScene = new Scene(myPane);
         primaryStage.setScene(myScene);
         ((BorderPane) myPane).setCenter(scene);
@@ -240,28 +247,97 @@ public class MotionJavaFx extends Application {
         primaryStage.show();
         gestureNameField = (TextField) myPane.lookup("#gestureNameField");
         errorField = (TextField) myPane.lookup("#errorField");
+        confidentialityField = (TextField) myPane.lookup("#confidentialityField");
+        outputField = (TextField) myPane.lookup("#outputField");
         scene.setCamera(camera);
         Thread t = new Thread() {
             @Override
             public void run() {
-                listener = new SampleListener();
+                listener = new UserInterfaceListener(leftHand, rightHand);
 
                 // Have the sample listener receive events from the controller
                 controller.addListener(listener);
             }
 
         };
-
         t.start();
+        try {
+
+            allGestures = GestureDAO.getAllGestures();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error while retrieving Data from DB, " + e);
+        }
+
+        Thread worker = new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException("Error while sleeping: " + e);
+                    }
+                    //controller = new Controller();
+                    Frame frame = controller.frame();
+                    Gesture gesture = getGestureFromFrame(frame);
+                    gesture.getHandGestures();
+                    Map<Gesture, Double> confidentialityMap = new HashMap<>();
+                    try {
+
+                        for (Gesture gestureFromDb : allGestures) {
+                            confidentialityMap.put(gestureFromDb, calcConfidentiality(gesture, gestureFromDb));
+                        }
+                        final Map.Entry<Gesture, Double> gestureDoubleEntry = confidentialityMap.entrySet().stream().max((o1, o2) -> o1.getValue().compareTo(o2.getValue())).get();
+                        outputField.setText(gestureDoubleEntry.getKey().getName());
+                        confidentialityField.setText(gestureDoubleEntry.getValue()+"");
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Error while retrieving Data from DB, " + e);
+                    }
+                }
+            }
+
+            private Double calcConfidentiality(Gesture gesture, Gesture gestureFromDb) {
+                double totalFailure = 0;
+                for (HandGesture handGesture : gesture.getHandGestures()) {
+                    final boolean rightHand = handGesture.isRightHand();
+                    final List<HandGesture> matchingHandGestures = gestureFromDb.getHandGestures().stream().
+                            filter(handGesture1 -> handGesture1.isRightHand() == rightHand)
+                            .collect(Collectors.toList());
+                    double minFailure = Double.MAX_VALUE;
+                    for (HandGesture matchingHandGesture : matchingHandGestures) {
+                        double failures = calcFailure(handGesture,matchingHandGesture);
+                        if (failures < minFailure) {
+                            minFailure = failures;
+                        }
+                    }
+                    totalFailure+=minFailure;
+                }
+
+                return 100-totalFailure;
+            }
+
+            private double calcFailure(HandGesture handGesture, HandGesture matchingHandGesture) {
+                double failures = 0;
+
+                for (int i = 0; i < handGesture.getAngles().size(); i++) {
+                    Angle a = handGesture.getAngles().get(i);
+                    Angle b = matchingHandGesture.getAngles().get(i);
+                    failures += Math.pow(a.getValue() - b.getValue(), 2);
+                }
+
+                return failures;
+            }
+
+        };
+        worker.start();
+
 
         // Remove the sample listener when done
         //controller.removeListener(listener);
         //primaryStage.close();
     }
 
-    public void saveGesture(Event event) {
-        controller = new Controller();
-        Frame frame = controller.frame();
+    private Gesture getGestureFromFrame(Frame frame) {
         Gesture gesture = new Gesture();
         gesture.setName(gestureNameField.getText());
         for (Hand hand : frame.hands()) {
@@ -274,96 +350,19 @@ public class MotionJavaFx extends Application {
             HandGesture handGesture = new HandGesture(fingerTips, fingerBases, hand.arm().wristPosition(), hand.isRight());
             gesture.getHandGestures().add(handGesture);
         }
+        return gesture;
+    }
+
+    public void saveGesture(Event event) {
+        controller = new Controller();
+        Frame frame = controller.frame();
+        Gesture gesture = getGestureFromFrame(frame);
         try {
             GestureDAO.insertGesture(gesture);
         } catch (Exception e) {
             errorField.setVisible(true);
             errorField.setText(e.getMessage());
         }
-    }
-
-    class SampleListener extends Listener {
-        public void onInit(Controller controller) {
-            System.out.println("Initialized");
-        }
-
-        public void onConnect(Controller controller) {
-            System.out.println("Connected");
-        }
-
-        public void onDisconnect(Controller controller) {
-            //Note: not dispatched when running in a debugger.
-            System.out.println("Disconnected");
-        }
-
-        public void onExit(Controller controller) {
-            System.out.println("Exited");
-        }
-
-        public void onFrame(Controller controller) {
-            // Get the most recent frame and report some basic information
-            Frame frame = controller.frame();
-
-            //Get hands
-            for (Hand hand : frame.hands()) {
-
-
-                // Get the hand's normal vector and direction
-                Vector origin = hand.palmPosition();
-
-
-                // Get arm bone
-                Arm arm = hand.arm();
-
-                // Get fingers
-                for (Finger finger : hand.fingers()) {
-
-                    final HandModel handModel;
-                    if (hand.isLeft()) {
-                        handModel = leftHand;
-                    } else {
-                        handModel = rightHand;
-                    }
-                    final FingerModel fingerModel = handModel.getFingerByType(finger.type());
-                    final Sphere fingerTip = fingerModel.getFingerTip();
-                    final Vector tipPosition = finger.tipPosition();
-                    //System.out.println("x: "+tipPosition.getX() + " y: "+tipPosition.getY());
-                    moveSphereToVector(fingerTip, tipPosition);
-                    //Get Bones
-                    for (Bone.Type boneType : Bone.Type.values()) {
-                        Bone bone = finger.bone(boneType);
-                        final Sphere boneSphere = fingerModel.getBoneByType(bone.type());
-                        moveSphereToVector(boneSphere, bone.center());
-                    }
-                }
-            }
-            try {
-                Thread.sleep(50); //60 FPS
-            } catch (InterruptedException e) {
-                System.out.println(e);
-            }
-        }
-
-        private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
-            final Translate translate = calcTranslation(fingerTip, tipPosition);
-            /*if (translate.determinant() < 1){
-                return;
-            } */
-            Platform.runLater(() -> {
-                fingerTip.getTransforms().add(translate);
-            });
-            fingerTip.setTranslateX(fingerTip.getTranslateX() + translate.getTx());
-            fingerTip.setTranslateY(fingerTip.getTranslateY() + translate.getTy());
-            fingerTip.setTranslateZ(fingerTip.getTranslateZ() + translate.getTz());
-        }
-
-        private Translate calcTranslation(Sphere fingerSphere, Vector tipPosition) {
-            final double deltaX = tipPosition.getX() / 5 - fingerSphere.getTranslateX();
-            final double deltaY = tipPosition.getY() / 5 - fingerSphere.getTranslateY();
-            final double deltaZ = tipPosition.getZ() / 5 - fingerSphere.getTranslateZ();
-            return new Translate(deltaX, deltaY, deltaZ);
-        }
-
     }
 
     /**

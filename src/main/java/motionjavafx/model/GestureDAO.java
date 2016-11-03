@@ -75,58 +75,6 @@ public class GestureDAO {
         return gestureList;
     }
 
-    public static void main(String[] args) {
-        try {
-            setup();
-            final ObservableList<Gesture> allGestures = getAllGestures();
-            final Gesture gesture = allGestures.get(0);
-            if (gesture.getHandGestures().size()!= 2)  {
-                System.out.println("ERROR missing handgesture");
-            } else {
-                final HandGesture handGesture1 = gesture.getHandGestures().get(0);
-                if (handGesture1.getAngles().size()!=2)  {
-                    System.out.println( "ERROR missing angle in hg 1");
-                }
-                final HandGesture handGesture2 = gesture.getHandGestures().get(1);
-                if (handGesture2.getAngles().size()!=2)  {
-                    System.out.println( "ERROR missing angle in hg 2");
-                }
-            }
-
-        } catch (SQLException e) {
-            e.getErrorCode();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void setup() throws SQLException, ClassNotFoundException {
-        DBUtil.dbExecuteUpdate("delete from angle");
-        DBUtil.dbExecuteUpdate("delete from handGesture");
-        DBUtil.dbExecuteUpdate("delete from gesture");
-        final HandGesture handGesture = new HandGesture();
-        handGesture.setIsRightHand(true);
-        Angle angle = new Angle();
-        angle.setAngleType(Angle.AngleType.BTOW);
-        angle.setValue(3.123f);
-        handGesture.getAngles().add(angle);
-        angle = new Angle();
-        angle.setAngleType(Angle.AngleType.FTOF);
-        angle.setValue(6.3245f);
-        handGesture.getAngles().add(angle);
-        final HandGesture handGesture2 = new HandGesture();
-        handGesture2.setIsRightHand(false);
-        angle = new Angle();
-        angle.setAngleType(Angle.AngleType.BTOW);
-        angle.setValue(5.123f);
-        handGesture2.getAngles().add(angle);
-        angle = new Angle();
-        angle.setAngleType(Angle.AngleType.FTOF);
-        angle.setValue(4.3245f);
-        handGesture2.getAngles().add(angle);
-        insertGesture(new Gesture(2, "test", Arrays.asList(handGesture, handGesture2)));
-    }
-
     //*************************************
     //INSERT an Gesture
     //*************************************

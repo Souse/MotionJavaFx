@@ -18,8 +18,7 @@ public class DBUtil {
     //CREATE TABLE Gesture (id integer primary key, name text)
     //CREATE TABLE Angle (AngleType numeric, handgestureid integer, id integer primary key, value numeric)
 
-    private static final String connStr = "jdbc:sqlite:/home/lena/programming/LeapMotionDB/db";
-
+    public static String connStr = "jdbc:sqlite:/home/lena/programming/LeapMotionDB/db";
 
     //Connect to DB
     public static void dbConnect() throws SQLException, ClassNotFoundException {

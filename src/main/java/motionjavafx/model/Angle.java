@@ -26,12 +26,31 @@ public class Angle {
         this.angleType = angleType;
     }
 
-    public static enum AngleType {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Angle angle = (Angle) o;
+
+        if (Float.compare(angle.value, value) != 0) return false;
+        return angleType == angle.angleType;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (value != +0.0f ? Float.floatToIntBits(value) : 0);
+        result = 31 * result + angleType.hashCode();
+        return result;
+    }
+
+    public enum AngleType {
         FTOF(1), FTOB(2), BTOW(3);
         private int number;
 
 
-        private AngleType(int number) {
+        AngleType(int number) {
             this.number = number;
         }
 
