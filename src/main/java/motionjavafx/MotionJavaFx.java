@@ -4,11 +4,13 @@ import com.leapmotion.leap.*;
 import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
@@ -52,10 +54,16 @@ public class MotionJavaFx extends Application {
     private static final double MOUSE_SPEED = 0.1;
     private static final double ROTATION_SPEED = 2.0;
     private static final double TRACK_SPEED = 0.3;
+    @FXML
     public TextField gestureNameField;
+    @FXML
     public TextField errorField;
+    @FXML
     public TextField outputField;
+    @FXML
     public TextField confidentialityField;
+    @FXML
+    public ListView gestureListView;
 
     double mousePosX;
     double mousePosY;
@@ -249,24 +257,29 @@ public class MotionJavaFx extends Application {
         errorField = (TextField) myPane.lookup("#errorField");
         confidentialityField = (TextField) myPane.lookup("#confidentialityField");
         outputField = (TextField) myPane.lookup("#outputField");
+        gestureListView = (ListView) myPane.lookup("#gestureListView");
         scene.setCamera(camera);
         Thread t = new Thread() {
             @Override
             public void run() {
                 listener = new UserInterfaceListener(leftHand, rightHand);
+                while(true) {
+                    listener.handleFrame(controller.frame());
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        System.out.println(e);
+                    }
 
+                }
                 // Have the sample listener receive events from the controller
-                controller.addListener(listener);
+                //controller.addListener(listener);
             }
 
         };
         t.start();
-        try {
-
-            allGestures = GestureDAO.getAllGestures();
-        } catch (Exception e) {
-            throw new IllegalStateException("Error while retrieving Data from DB, " + e);
-        }
+        loadGesturesFromDB();
+        gestureListView.setItems(allGestures);
 
         Thread worker = new Thread() {
             @Override
@@ -280,7 +293,9 @@ public class MotionJavaFx extends Application {
                     //controller = new Controller();
                     Frame frame = controller.frame();
                     Gesture gesture = getGestureFromFrame(frame);
-                    gesture.getHandGestures();
+                    if (gesture == null) {
+                        continue;
+                    }
                     Map<Gesture, Double> confidentialityMap = new HashMap<>();
                     try {
 
@@ -337,9 +352,27 @@ public class MotionJavaFx extends Application {
         //primaryStage.close();
     }
 
+    private void loadGesturesFromDB() {
+        try {
+
+            allGestures = GestureDAO.getAllGestures();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error while retrieving Data from DB, " + e);
+        }
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        controller.delete();
+    }
+
     private Gesture getGestureFromFrame(Frame frame) {
         Gesture gesture = new Gesture();
         gesture.setName(gestureNameField.getText());
+        if (frame.hands().isEmpty()) {
+            return null;
+        }
         for (Hand hand : frame.hands()) {
             List<Vector> fingerTips = new ArrayList<Vector>();
             List<Vector> fingerBases = new ArrayList<Vector>();
@@ -375,5 +408,10 @@ public class MotionJavaFx extends Application {
      */
     public static void main(String[] args) {
         launch(args);
+    }
+
+    public void refreshGestures(Event event) {
+        loadGesturesFromDB();
+        gestureListView.layout();
     }
 }

@@ -26,6 +26,10 @@ public class Gesture {
         return name.hashCode();
     }
 
+    @Override
+    public String toString() {
+        return name + " id: "+id;
+    }
 
     @Override
     public boolean equals(Object o) {

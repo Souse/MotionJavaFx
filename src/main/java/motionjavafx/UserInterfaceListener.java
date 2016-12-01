@@ -8,7 +8,7 @@ import javafx.scene.transform.Translate;
 /**
  * Created by lena on 11/3/16.
  */
-class UserInterfaceListener extends Listener {
+class UserInterfaceListener  { //extends Listener {
 
     private HandModel leftHand, rightHand;
 
@@ -34,9 +34,9 @@ class UserInterfaceListener extends Listener {
         System.out.println("Exited");
     }
 
-    public void onFrame(Controller controller) {
+    public void handleFrame(Frame frame) {
         // Get the most recent frame and report some basic information
-        Frame frame = controller.frame();
+        //Frame frame = controller.frame();
 
         //Get hands
         for (Hand hand : frame.hands()) {
@@ -71,11 +71,11 @@ class UserInterfaceListener extends Listener {
                 }
             }
         }
-        try {
-            Thread.sleep(50); //60 FPS
+      /*  try {
+            Thread.sleep(100); //60 FPS
         } catch (InterruptedException e) {
             System.out.println(e);
-        }
+        }*/
     }
 
     private void moveSphereToVector(Sphere fingerTip, Vector tipPosition) {
