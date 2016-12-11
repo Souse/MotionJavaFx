@@ -1,6 +1,7 @@
 package motionjavafx;
 
 import com.leapmotion.leap.*;
+import com.leapmotion.leap.Vector;
 import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
@@ -22,15 +23,23 @@ import motionjavafx.model.Angle;
 import motionjavafx.model.Gesture;
 import motionjavafx.model.GestureDAO;
 import motionjavafx.model.HandGesture;
+import org.apache.commons.collections.FastArrayList;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.spark.ml.classification.LogisticRegression;
+import org.apache.spark.ml.classification.OneVsRest;
+import org.apache.spark.ml.classification.OneVsRestModel;
+import org.apache.spark.ml.linalg.SparseVector;
+import org.apache.spark.ml.linalg.VectorUDT;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class MotionJavaFx extends Application {
 
@@ -74,6 +83,8 @@ public class MotionJavaFx extends Application {
     private Controller controller;
     private UserInterfaceListener listener;
     private ObservableList<Gesture> allGestures;
+    private SparkSession spark;
+    private OneVsRestModel ovrModel;
 
     private void buildCamera() {
         root.getChildren().add(cameraXform);
@@ -227,14 +238,22 @@ public class MotionJavaFx extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        Logger.getLogger("org").setLevel(Level.OFF);
+        Logger.getLogger("akka").setLevel(Level.OFF);
+        Logger.getRootLogger().setLevel(Level.ERROR);
+
         buildCamera();
         buildAxes();
+        spark = SparkSession
+                .builder()
+                .master("local")
+                .appName("MotionJavaFx")
+                .getOrCreate();
         //buildMolecule();
         controller = new Controller();
         Pane myPane = null;
         try {
-            myPane = FXMLLoader.load(getClass().getResource
-                    ("sample.fxml"));
+            myPane = FXMLLoader.load(getClass().getClassLoader().getResource("sample.fxml"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -263,7 +282,7 @@ public class MotionJavaFx extends Application {
             @Override
             public void run() {
                 listener = new UserInterfaceListener(leftHand, rightHand);
-                while(true) {
+                while (true) {
                     listener.handleFrame(controller.frame());
                     try {
                         Thread.sleep(50);
@@ -296,53 +315,25 @@ public class MotionJavaFx extends Application {
                     if (gesture == null) {
                         continue;
                     }
-                    Map<Gesture, Double> confidentialityMap = new HashMap<>();
                     try {
-
-                        for (Gesture gestureFromDb : allGestures) {
-                            confidentialityMap.put(gestureFromDb, calcConfidentiality(gesture, gestureFromDb));
-                        }
-                        final Map.Entry<Gesture, Double> gestureDoubleEntry = confidentialityMap.entrySet().stream().max((o1, o2) -> o1.getValue().compareTo(o2.getValue())).get();
-                        outputField.setText(gestureDoubleEntry.getKey().getName());
-                        confidentialityField.setText(gestureDoubleEntry.getValue()+"");
+                        Dataset<Row> test;
+                        org.apache.spark.ml.linalg.Vector sv = parseGestureToVector(gesture);
+                        Object[] listO = new Object[1];
+                        listO[0] = sv;
+                        StructType st2 = new StructType().add("features", new VectorUDT());
+                        Row newR = new GenericRowWithSchema(listO, st2);
+                        confidentialityField.setText("Calculating!");
+                        test = spark.createDataFrame(Arrays.asList(newR), st2);
+                        Dataset<Row> predictions = ovrModel.transform(test)
+                                .select("prediction");
+                        final Integer id = ((Double) predictions.collectAsList().get(0).get(0)).intValue();
+                        outputField.setText(getGestureById(id));
+                        confidentialityField.setText("Done!");
                     } catch (Exception e) {
                         throw new IllegalStateException("Error while retrieving Data from DB, " + e);
                     }
                 }
             }
-
-            private Double calcConfidentiality(Gesture gesture, Gesture gestureFromDb) {
-                double totalFailure = 0;
-                for (HandGesture handGesture : gesture.getHandGestures()) {
-                    final boolean rightHand = handGesture.isRightHand();
-                    final List<HandGesture> matchingHandGestures = gestureFromDb.getHandGestures().stream().
-                            filter(handGesture1 -> handGesture1.isRightHand() == rightHand)
-                            .collect(Collectors.toList());
-                    double minFailure = Double.MAX_VALUE;
-                    for (HandGesture matchingHandGesture : matchingHandGestures) {
-                        double failures = calcFailure(handGesture,matchingHandGesture);
-                        if (failures < minFailure) {
-                            minFailure = failures;
-                        }
-                    }
-                    totalFailure+=minFailure;
-                }
-
-                return 100-totalFailure;
-            }
-
-            private double calcFailure(HandGesture handGesture, HandGesture matchingHandGesture) {
-                double failures = 0;
-
-                for (int i = 0; i < handGesture.getAngles().size(); i++) {
-                    Angle a = handGesture.getAngles().get(i);
-                    Angle b = matchingHandGesture.getAngles().get(i);
-                    failures += Math.pow(a.getValue() - b.getValue(), 2);
-                }
-
-                return failures;
-            }
-
         };
         worker.start();
 
@@ -352,13 +343,66 @@ public class MotionJavaFx extends Application {
         //primaryStage.close();
     }
 
+    private String getGestureById(final Integer id) {
+        return allGestures.stream().filter(gesture -> gesture.getId() == id.intValue()).findFirst().orElseThrow(() -> new IllegalStateException("Not a valid id: " + id)).getName();
+    }
+
     private void loadGesturesFromDB() {
         try {
 
             allGestures = GestureDAO.getAllGestures();
+            StructType st = new StructType();
+            st = st.add("label", DataTypes.IntegerType);
+            st = st.add("features", new VectorUDT());
+            //org.apache.spark.ml.linalg.VectorUDT
+            List<Row> rows = new ArrayList<>();
+            for (Gesture gesture : allGestures) {
+                List<Object> data = new FastArrayList();
+                data.add(gesture.getId());
+                org.apache.spark.ml.linalg.Vector v = parseGestureToVector(gesture);
+                data.add(v);
+
+                rows.add(new GenericRowWithSchema(data.toArray(), st));
+            }
+
+
+            final Dataset<Row> inputData = spark.createDataFrame(rows, st);
+            // Dataset<Row> inputData = spark.read().format("libsvm")
+            //        .load("/home/lena/IdeaProjects/MotionJavaFx/sample_multiclass_classification_data.txt");
+
+            // configure the base classifier.
+            LogisticRegression classifier = new LogisticRegression()
+                    .setMaxIter(10)
+                    .setTol(1E-6)
+                    .setFitIntercept(true);
+
+            // instantiate the One Vs Rest Classifier.
+            OneVsRest ovr = new OneVsRest().setClassifier(classifier);
+
+            // train the multiclass model.
+            ovrModel = ovr.fit(inputData);
         } catch (Exception e) {
             throw new IllegalStateException("Error while retrieving Data from DB, " + e);
         }
+    }
+
+    private org.apache.spark.ml.linalg.Vector parseGestureToVector(Gesture gesture) {
+        HandGesture hg = gesture.getHandGestures().stream().filter(handGesture -> handGesture.isRightHand()).findFirst().get();
+        final List<Angle> angles = hg.getAngles();
+        Map<Integer, Double> map = new HashMap<>();
+        for (int i = 0; i < angles.size(); i++) {
+            map.put(i, (double) angles.get(i).getValue());
+        }
+        int[] keys = new int[16];
+        double[] values = new double[16];
+        final Object[] keysObj = map.keySet().toArray();
+        final Object[] valuesObj = map.values().toArray();
+        for (int i = 0; i < 16; i++) {
+            keys[i] = (int) keysObj[i];
+            values[i] = (double) valuesObj[i];
+        }
+
+        return new SparseVector(16, keys, values);
     }
 
     @Override
